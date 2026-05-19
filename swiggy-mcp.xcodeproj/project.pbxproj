@@ -6,13 +6,54 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2A2830802FB4B00100904214 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830902FB4B00100904214 /* ContentView.swift */; };
+		2A2830812FB4B00100904214 /* swiggy_mcpApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830912FB4B00100904214 /* swiggy_mcpApp.swift */; };
+		2A2830822FB4B00100904214 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830922FB4B00100904214 /* Theme.swift */; };
+		2A2830832FB4B00100904214 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830932FB4B00100904214 /* Models.swift */; };
+		2A2830842FB4B00100904214 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830942FB4B00100904214 /* MockData.swift */; };
+		2A2830852FB4B00100904214 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830952FB4B00100904214 /* Components.swift */; };
+		2A2830862FB4B00100904214 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830962FB4B00100904214 /* HomeView.swift */; };
+		2A2830872FB4B00100904214 /* RecommendationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830972FB4B00100904214 /* RecommendationsView.swift */; };
+		2A2830882FB4B00100904214 /* CartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830982FB4B00100904214 /* CartView.swift */; };
+		2A2830892FB4B00100904214 /* EventPrepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2830992FB4B00100904214 /* EventPrepView.swift */; };
+		2A28308A2FB4B00100904214 /* OrderSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A28309A2FB4B00100904214 /* OrderSuccessView.swift */; };
+		2A28308B2FB4B00100904214 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A28309B2FB4B00100904214 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2A28305B2FB4A21E00904214 /* swiggy-mcp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "swiggy-mcp.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2A2830902FB4B00100904214 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2A2830912FB4B00100904214 /* swiggy_mcpApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = swiggy_mcpApp.swift; sourceTree = "<group>"; };
+		2A2830922FB4B00100904214 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		2A2830932FB4B00100904214 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		2A2830942FB4B00100904214 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		2A2830952FB4B00100904214 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		2A2830962FB4B00100904214 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		2A2830972FB4B00100904214 /* RecommendationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationsView.swift; sourceTree = "<group>"; };
+		2A2830982FB4B00100904214 /* CartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartView.swift; sourceTree = "<group>"; };
+		2A2830992FB4B00100904214 /* EventPrepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPrepView.swift; sourceTree = "<group>"; };
+		2A28309A2FB4B00100904214 /* OrderSuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSuccessView.swift; sourceTree = "<group>"; };
+		2A28309B2FB4B00100904214 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2A28305D2FB4A21E00904214 /* swiggy-mcp */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
+			isa = PBXGroup;
+			children = (
+				2A28309B2FB4B00100904214 /* Assets.xcassets */,
+				2A2830982FB4B00100904214 /* CartView.swift */,
+				2A2830952FB4B00100904214 /* Components.swift */,
+				2A2830902FB4B00100904214 /* ContentView.swift */,
+				2A2830992FB4B00100904214 /* EventPrepView.swift */,
+				2A2830962FB4B00100904214 /* HomeView.swift */,
+				2A2830942FB4B00100904214 /* MockData.swift */,
+				2A2830932FB4B00100904214 /* Models.swift */,
+				2A28309A2FB4B00100904214 /* OrderSuccessView.swift */,
+				2A2830972FB4B00100904214 /* RecommendationsView.swift */,
+				2A2830922FB4B00100904214 /* Theme.swift */,
+				2A2830912FB4B00100904214 /* swiggy_mcpApp.swift */,
+			);
 			path = "swiggy-mcp";
 			sourceTree = "<group>";
 		};
@@ -60,9 +101,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				2A28305D2FB4A21E00904214 /* swiggy-mcp */,
-			);
 			name = "swiggy-mcp";
 			packageProductDependencies = (
 			);
@@ -109,6 +147,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A28308B2FB4B00100904214 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +158,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A2830882FB4B00100904214 /* CartView.swift in Sources */,
+				2A2830852FB4B00100904214 /* Components.swift in Sources */,
+				2A2830802FB4B00100904214 /* ContentView.swift in Sources */,
+				2A2830892FB4B00100904214 /* EventPrepView.swift in Sources */,
+				2A2830862FB4B00100904214 /* HomeView.swift in Sources */,
+				2A2830842FB4B00100904214 /* MockData.swift in Sources */,
+				2A2830832FB4B00100904214 /* Models.swift in Sources */,
+				2A28308A2FB4B00100904214 /* OrderSuccessView.swift in Sources */,
+				2A2830872FB4B00100904214 /* RecommendationsView.swift in Sources */,
+				2A2830822FB4B00100904214 /* Theme.swift in Sources */,
+				2A2830812FB4B00100904214 /* swiggy_mcpApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
