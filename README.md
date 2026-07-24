@@ -5,7 +5,7 @@
 [![iOS 26](https://img.shields.io/badge/iOS-26%2B-000000?logo=apple)](https://developer.apple.com/ios/)
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-F05138?logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
 [![MCP](https://img.shields.io/badge/commerce-local%20MCP-6B235A)](https://mcp.swiggy.com/builders/)
-[![Contract tests](https://github.com/ayushhagarwal/swiggy-mcp/actions/workflows/contract-tests.yml/badge.svg)](https://github.com/ayushhagarwal/swiggy-mcp/actions/workflows/contract-tests.yml)
+[![Contract tests](https://github.com/ayushhagarwal/fitorder-swiggy-mcp/actions/workflows/contract-tests.yml/badge.svg)](https://github.com/ayushhagarwal/fitorder-swiggy-mcp/actions/workflows/contract-tests.yml)
 
 FitOrder turns one performance-nutrition request into two explicit, inspectable
 demo orders across Swiggy Food and Instamart:
@@ -151,7 +151,7 @@ swiggy-mcpTests/        Deterministic planner and commerce-state unit tests
 swiggy-mcpUITests/      Golden-path UI automation
 demo-server/            Dependency-free stateful Food + Instamart MCP server
 docs/                   Architecture notes and reviewer media
-submission/             Final demo, clean take, captions and narration sources
+submission/             Final captioned demo, captions and narration source
 ```
 
 ## Demo and data disclosure
