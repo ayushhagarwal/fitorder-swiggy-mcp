@@ -2,7 +2,8 @@
 
 This directory contains:
 
-- `FitOrder-2.0-Captioned.mp4` — final 86.50-second H.264/AAC submission cut
+- `FitOrder-2.0-GitHub-Preview.mp4` — inline-viewable 1080 × 2346 H.264/AAC reviewer copy
+- `FitOrder-2.0-Captioned.mp4` — native-resolution 1320 × 2868 H.264/AAC submission master
 - `FitOrder-Captions.srt` — burned-in muted-viewer captions
 - `FitOrder-Voiceover.txt` — voiceover source
 
