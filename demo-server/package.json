@@ -1,0 +1,13 @@
+{
+  "name": "fitorder-demo-mcp-server",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node contract-test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

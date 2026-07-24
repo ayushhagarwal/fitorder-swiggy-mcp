@@ -1,0 +1,49 @@
+1
+00:00:00,500 --> 00:00:05,200
+HYROX in 9 days.
+One request handles recovery + refill.
+
+2
+00:00:05,200 --> 00:00:09,000
+FitOrder extracts diet, purpose,
+timing, duration and budget.
+
+3
+00:00:09,000 --> 00:00:13,200
+Food and Instamart plan in parallel
+over local MCP.
+
+4
+00:00:13,200 --> 00:00:19,200
+Stock changed.
+Nothing changes without Ayush's approval.
+
+5
+00:00:19,200 --> 00:00:34,000
+A recovery dinner + five breakfasts.
+Commerce values are server-returned.
+
+6
+00:00:34,000 --> 00:00:46,200
+Two Swiggy surfaces stay separate.
+Combined total: ₹828.
+
+7
+00:00:46,200 --> 00:00:57,500
+The MCP receipt exposes tool order,
+latency and concise result summaries.
+
+8
+00:00:57,500 --> 00:00:64,000
+Both carts refresh before
+explicit confirmation unlocks.
+
+9
+00:00:64,000 --> 00:00:75,500
+Food and Instamart are placed
+and tracked independently.
+
+10
+00:00:75,500 --> 00:01:26,500
+118/130g protein planned.
+One intent → a repeatable commerce loop.

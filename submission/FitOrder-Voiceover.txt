@@ -1,0 +1,24 @@
+Training plans know what your body needs. Commerce apps know what is available.
+FitOrder connects the two.
+
+Ayush is nine days from HYROX and asks for tonight's vegetarian recovery meal,
+plus five days of breakfast, under nine hundred rupees.
+
+A deterministic on-device planner extracts the constraints, while Food and
+Instamart MCP tools resolve his seeded home, match items, check stock, and build
+separate carts.
+
+Greek yogurt is unavailable, so FitOrder proposes high-protein curd, saves
+twenty-four rupees, and waits for approval.
+
+The server remains the source of truth. Prices, stock, ETA, fees, discounts, and
+the eight-hundred-twenty-eight-rupee combined total all come from MCP responses.
+The receipt makes every tool call inspectable.
+
+Before ordering, both carts refresh. Only then does explicit confirmation unlock.
+Food and Instamart place and track independently.
+
+The payoff is a day planned to one hundred eighteen grams of protein.
+
+One intent. Two Swiggy surfaces. A repeatable performance-commerce loop, built
+natively in SwiftUI, locally deterministic, and with zero PII persisted.

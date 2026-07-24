@@ -29,6 +29,7 @@ Package.resolved
 # CocoaPods / Carthage
 Pods/
 Carthage/Build/
+node_modules/
 
 # Fastlane
 fastlane/report.xml
@@ -56,3 +57,8 @@ fastlane/test_output/
 *.log
 tmp/
 temp/
+
+# Local recording source (submission masters remain versioned)
+submission/FitOrder-Uncut-Raw.mp4
+submission/FitOrder-2.0-Uncut.mp4
+submission/FitOrder-Voiceover.aiff
