@@ -20,8 +20,9 @@ the resulting demo orders independently.
 
 ## Watch the demo
 
-**[▶ Watch the captioned 86.5-second GitHub preview](submission/FitOrder-2.0-GitHub-Preview.mp4)** · [Download the native-resolution master](submission/FitOrder-2.0-Captioned.mp4)
-· [Captions and narration source](submission/)
+https://github.com/user-attachments/assets/a5979dcb-579e-483e-ad99-7e563e820da2
+
+**[▶ Open the captioned 86.5-second demo](https://github.com/user-attachments/assets/a5979dcb-579e-483e-ad99-7e563e820da2)** · [Download the native-resolution master](submission/FitOrder-2.0-Captioned.mp4) · [Captions and narration source](submission/)
 
 > **AI narration disclosure:** The video voiceover is AI-generated from the
 > included human-written script. Pronunciation and spoken accuracy may vary.
