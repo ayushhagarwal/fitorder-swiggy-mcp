@@ -828,18 +828,32 @@ function validateSessionId(candidate) {
     && /^[A-Za-z0-9._-]+$/.test(candidate);
 }
 
-function sendJson(response, status, payload, sessionId = null) {
-  const body = JSON.stringify(payload);
-  response.writeHead(status, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(body),
-    "Cache-Control": "no-store",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id",
-    "Access-Control-Expose-Headers": "Mcp-Session-Id",
-    ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}),
-  });
-  response.end(body);
+export function loopbackCorsOrigin(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "*") return null;
+  let url;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (url.username || url.password) return null;
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  if (url.pathname !== "/" || url.search || url.hash) return null;
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+  if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
+    return null;
+  }
+  return url.origin;
+}
+
+function requestPath(request) {
+  try {
+    return new URL(request.url ?? "/", "http://127.0.0.1").pathname;
+  } catch {
+    return request.url ?? "/";
+  }
 }
 
 function readJson(request) {
@@ -923,7 +937,47 @@ export function createDemoServer(options = {}) {
     ?? Number(process.env.DEMO_LATENCY_SCALE ?? 1);
   const sessions = new Map();
   let sessionCounter = 0;
-  let defaultScenario = "goldenPath";
+  const defaultScenario = "goldenPath";
+  const requestedCorsOrigin = options.corsOrigin !== undefined
+    ? options.corsOrigin
+    : process.env.DEMO_CORS_ORIGIN;
+  const allowedCorsOrigin = loopbackCorsOrigin(requestedCorsOrigin);
+
+  function corsHeadersFor(request, { preflight = false } = {}) {
+    const origin = request?.headers?.origin;
+    if (
+      !allowedCorsOrigin
+      || typeof origin !== "string"
+      || origin !== allowedCorsOrigin
+    ) {
+      return {};
+    }
+    return {
+      "Access-Control-Allow-Origin": allowedCorsOrigin,
+      Vary: "Origin",
+      ...(preflight
+        ? {
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id",
+          }
+        : {
+            "Access-Control-Expose-Headers": "Mcp-Session-Id",
+          }),
+    };
+  }
+
+  function sendJson(response, status, payload, sessionId = null, request = null) {
+    const body = JSON.stringify(payload);
+    const headers = {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": Buffer.byteLength(body),
+      "Cache-Control": "no-store",
+      ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}),
+      ...corsHeadersFor(request),
+    };
+    response.writeHead(status, headers);
+    response.end(body);
+  }
 
   function resolveSession(request) {
     const supplied = request.headers["mcp-session-id"];
@@ -938,90 +992,75 @@ export function createDemoServer(options = {}) {
   }
 
   const server = http.createServer(async (request, response) => {
+    const pathname = requestPath(request);
     if (request.method === "OPTIONS") {
       response.writeHead(204, {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id",
+        "Cache-Control": "no-store",
+        ...corsHeadersFor(request, { preflight: true }),
       });
       response.end();
       return;
     }
 
     if (request.method !== "POST") {
-      sendJson(response, 405, { error: "Only POST is supported." });
+      sendJson(response, 405, { error: "Only POST is supported." }, null, request);
       return;
     }
 
     let sessionId = null;
     try {
+      if (pathname === "/demo/reset" || pathname === "/demo/scenario") {
+        const supplied = request.headers["mcp-session-id"];
+        const body = await readJson(request);
+        if (typeof supplied !== "string" || supplied.length === 0) {
+          sendJson(response, 401, {
+            error: "Mcp-Session-Id is required.",
+          }, null, request);
+          return;
+        }
+        if (!validateSessionId(supplied)) {
+          sendJson(response, 400, {
+            error: "Mcp-Session-Id is invalid.",
+          }, null, request);
+          return;
+        }
+
+        sessionId = supplied;
+        const scenario = pathname === "/demo/reset"
+          ? (body.scenario ?? "goldenPath")
+          : body.scenario;
+        if (!VALID_SCENARIOS.has(scenario)) {
+          sendJson(response, 400, {
+            error: "Unknown scenario.",
+            validScenarios: [...VALID_SCENARIOS],
+          }, sessionId, request);
+          return;
+        }
+
+        const resetState = pathname === "/demo/reset" || body.reset === true;
+        if (resetState || !sessions.has(sessionId)) {
+          sessions.set(sessionId, createInitialState(scenario));
+        } else {
+          const state = sessions.get(sessionId);
+          state.scenario = scenario;
+          state.food.cartChangeApplied = false;
+          state.instamart.cartChangeApplied = false;
+          state.food.ambiguousResponseReturned = false;
+          state.instamart.ambiguousResponseReturned = false;
+        }
+
+        sendJson(response, 200, {
+          ok: true,
+          scenario,
+          ...(pathname === "/demo/scenario" ? { reset: body.reset === true } : {}),
+          session: maskSessionId(sessionId),
+        }, sessionId, request);
+        return;
+      }
+
       const session = resolveSession(request);
       sessionId = session.sessionId;
       const body = await readJson(request);
-      const hasExplicitSession = request.headers["mcp-session-id"] != null;
-
-      if (request.url === "/demo/reset") {
-        const scenario = body.scenario ?? "goldenPath";
-        if (!VALID_SCENARIOS.has(scenario)) {
-          sendJson(response, 400, {
-            error: "Unknown scenario.",
-            validScenarios: [...VALID_SCENARIOS],
-          }, sessionId);
-          return;
-        }
-        if (hasExplicitSession) {
-          sessions.set(sessionId, createInitialState(scenario));
-        } else {
-          defaultScenario = scenario;
-          sessions.clear();
-        }
-        sendJson(response, 200, {
-          ok: true,
-          scenario,
-          session: maskSessionId(sessionId),
-        }, sessionId);
-        return;
-      }
-
-      if (request.url === "/demo/scenario") {
-        const scenario = body.scenario;
-        if (!VALID_SCENARIOS.has(scenario)) {
-          sendJson(response, 400, {
-            error: "Unknown scenario.",
-            validScenarios: [...VALID_SCENARIOS],
-          }, sessionId);
-          return;
-        }
-        if (!hasExplicitSession) {
-          defaultScenario = scenario;
-          if (body.reset === true) {
-            sessions.clear();
-          } else {
-            for (const state of sessions.values()) {
-              state.scenario = scenario;
-              state.food.cartChangeApplied = false;
-              state.instamart.cartChangeApplied = false;
-              state.food.ambiguousResponseReturned = false;
-              state.instamart.ambiguousResponseReturned = false;
-            }
-          }
-        } else if (body.reset === true) {
-          sessions.set(sessionId, createInitialState(scenario));
-        } else {
-          session.state.scenario = scenario;
-          session.state.food.cartChangeApplied = false;
-          session.state.instamart.cartChangeApplied = false;
-          session.state.food.ambiguousResponseReturned = false;
-          session.state.instamart.ambiguousResponseReturned = false;
-        }
-        sendJson(response, 200, {
-          ok: true,
-          scenario,
-          reset: body.reset === true,
-          session: maskSessionId(sessionId),
-        }, sessionId);
-        return;
-      }
 
       const service = request.url === "/food"
         ? "food"
@@ -1029,14 +1068,14 @@ export function createDemoServer(options = {}) {
           ? "instamart"
           : null;
       if (!service) {
-        sendJson(response, 404, { error: "Route not found." }, sessionId);
+        sendJson(response, 404, { error: "Route not found." }, sessionId, request);
         return;
       }
 
       try {
         validateRpcRequest(body);
       } catch (error) {
-        sendJson(response, 400, rpcError(body?.id, -32600, error.message), sessionId);
+        sendJson(response, 400, rpcError(body?.id, -32600, error.message), sessionId, request);
         return;
       }
 
@@ -1051,7 +1090,7 @@ export function createDemoServer(options = {}) {
           -32001,
           `${service === "food" ? "Food" : "Instamart"} demo service is unavailable.`,
           { code: "SERVER_UNAVAILABLE", retryable: true },
-        ), sessionId);
+        ), sessionId, request);
         return;
       }
 
@@ -1064,14 +1103,15 @@ export function createDemoServer(options = {}) {
             version: "2.0.0",
           },
           instructions: "Seeded localhost commerce data. No real orders or personal data.",
-        }), sessionId);
+        }), sessionId, request);
         return;
       }
 
       if (body.method === "notifications/initialized") {
         response.writeHead(202, {
+          "Cache-Control": "no-store",
           "Mcp-Session-Id": sessionId,
-          "Access-Control-Allow-Origin": "*",
+          ...corsHeadersFor(request),
         });
         response.end();
         return;
@@ -1082,7 +1122,7 @@ export function createDemoServer(options = {}) {
           tools: service === "food"
             ? FOOD_TOOL_DEFINITIONS
             : INSTAMART_TOOL_DEFINITIONS,
-        }), sessionId);
+        }), sessionId, request);
         return;
       }
 
@@ -1091,7 +1131,7 @@ export function createDemoServer(options = {}) {
           body.id,
           -32601,
           `Method not found: ${body.method}.`,
-        ), sessionId);
+        ), sessionId, request);
         return;
       }
 
@@ -1102,7 +1142,7 @@ export function createDemoServer(options = {}) {
           body.id,
           -32602,
           "tools/call requires params.name.",
-        ), sessionId);
+        ), sessionId, request);
         return;
       }
 
@@ -1110,7 +1150,7 @@ export function createDemoServer(options = {}) {
         const payload = service === "food"
           ? handleFoodTool(currentState, name, args)
           : handleInstamartTool(currentState, name, args);
-        sendJson(response, 200, rpcSuccess(body.id, toolResult(payload)), sessionId);
+        sendJson(response, 200, rpcSuccess(body.id, toolResult(payload)), sessionId, request);
       } catch (error) {
         const normalized = error instanceof ToolError
           ? error
@@ -1125,15 +1165,15 @@ export function createDemoServer(options = {}) {
               retryable: normalized.retryable,
               ...normalized.details,
             },
-          ), sessionId);
+          ), sessionId, request);
           return;
         }
-        sendJson(response, 200, rpcSuccess(body.id, toolErrorResult(normalized)), sessionId);
+        sendJson(response, 200, rpcSuccess(body.id, toolErrorResult(normalized)), sessionId, request);
       }
     } catch (error) {
       sendJson(response, 400, {
         error: error.message ?? "Invalid request.",
-      }, sessionId);
+      }, sessionId, request);
     }
   });
 
@@ -1161,10 +1201,25 @@ export function createDemoServer(options = {}) {
 }
 
 async function runFromCommandLine() {
+  const requestedCorsOrigin = process.env.DEMO_CORS_ORIGIN;
+  const allowedCorsOrigin = loopbackCorsOrigin(requestedCorsOrigin);
+  if (
+    typeof requestedCorsOrigin === "string"
+    && requestedCorsOrigin.trim() !== ""
+    && allowedCorsOrigin == null
+  ) {
+    console.warn(
+      "Ignoring DEMO_CORS_ORIGIN because it is not an explicit loopback origin.",
+    );
+  }
+
   const demoServer = createDemoServer();
   const address = await demoServer.start();
   console.log(`FitOrder demo MCP server listening on http://${address.address}:${address.port}`);
   console.log("Food: /food · Instamart: /im · Reset: /demo/reset");
+  if (allowedCorsOrigin) {
+    console.log(`Browser CORS origin: ${allowedCorsOrigin}`);
+  }
 
   const shutdown = async () => {
     await demoServer.stop();

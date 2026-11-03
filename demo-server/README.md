@@ -19,11 +19,16 @@ The default base URL is `http://127.0.0.1:8787`:
 - Reset the current session: `POST /demo/reset`
 - Select a scenario: `POST /demo/scenario`
 
-Send the response `Mcp-Session-Id` header on subsequent calls. Control calls
-with that header affect one session; omitting it resets or selects the default
-scenario for all in-memory demo sessions, matching the app's recording reset.
-Supported scenarios are `goldenPath`, `serverUnavailable`, `cartChanged`, and
-`ambiguousCheckout`.
+Send `Mcp-Session-Id` on `/demo/reset` and `/demo/scenario`. Those routes
+require the header and change only that session. A call without it is rejected
+and leaves every other in-memory cart untouched. Supported scenarios are
+`goldenPath`, `serverUnavailable`, `cartChanged`, and `ambiguousCheckout`.
+
+The server listens on `127.0.0.1` and does not send
+`Access-Control-Allow-Origin`. The iOS app and the Node contract test call it
+directly and do not need CORS. To let one local browser page read responses,
+set `DEMO_CORS_ORIGIN` to that page's exact loopback origin, for example
+`http://127.0.0.1:5173`. `*` and any public origin are ignored.
 
 Tool results expose the same payload in `result.structuredContent` and as JSON
 in `result.content[0].text`. Checkout requires `confirmed: true` and an

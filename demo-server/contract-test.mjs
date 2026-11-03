@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
-import { createDemoServer, deterministicLatencyMs } from "./server.mjs";
+import { createDemoServer, deterministicLatencyMs, loopbackCorsOrigin } from "./server.mjs";
 
 let ownedServer = null;
 let baseURL = process.env.DEMO_SERVER_URL?.replace(/\/$/, "");
 
 if (!baseURL) {
-  ownedServer = createDemoServer({ port: 0, latencyScale: 0 });
+  ownedServer = createDemoServer({ port: 0, latencyScale: 0, corsOrigin: null });
   const address = await ownedServer.start();
+  assert.equal(address.address, "127.0.0.1");
   baseURL = `http://${address.address}:${address.port}`;
 }
 
@@ -24,6 +25,8 @@ async function post(route, body, expectedStatus = 200) {
   });
   const returnedSessionId = response.headers.get("Mcp-Session-Id");
   if (returnedSessionId) sessionId = returnedSessionId;
+  assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-origin"), null);
   const payload = await response.json();
   assert.equal(
     response.status,
@@ -143,6 +146,206 @@ async function buildGoldenCarts() {
     "get_cart",
   ).cart;
   return { food, instamart };
+}
+
+function rpcBody(id, name) {
+  return {
+    jsonrpc: "2.0",
+    id,
+    method: "tools/call",
+    params: {
+      name,
+      arguments: name === "update_food_cart"
+        ? { items: [{ item_id: "food-paneer-protein-bowl", quantity: 1 }] }
+        : {},
+    },
+  };
+}
+
+async function rawPost(url, { session, body = {}, origin, expectedStatus = 200 } = {}) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(session ? { "Mcp-Session-Id": session } : {}),
+      ...(origin ? { Origin: origin } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  assert.equal(
+    response.status,
+    expectedStatus,
+    `${url} returned ${response.status}: ${text}`,
+  );
+  return {
+    response,
+    payload: text.length > 0 ? JSON.parse(text) : null,
+  };
+}
+
+async function foodItemCount(url, session) {
+  const { payload } = await rawPost(url, {
+    session,
+    body: rpcBody(1, "get_food_cart"),
+  });
+  return payload.result.structuredContent.cart.items.length;
+}
+
+async function testSessionIsolation() {
+  const demo = createDemoServer({ port: 0, latencyScale: 0, corsOrigin: null });
+  const address = await demo.start();
+  assert.equal(address.address, "127.0.0.1");
+  const url = `http://${address.address}:${address.port}`;
+  try {
+    await rawPost(`${url}/food`, {
+      session: "session-a",
+      body: rpcBody(1, "update_food_cart"),
+    });
+    await rawPost(`${url}/food`, {
+      session: "session-b",
+      body: rpcBody(1, "update_food_cart"),
+    });
+    assert.equal(await foodItemCount(`${url}/food`, "session-a"), 1);
+    assert.equal(await foodItemCount(`${url}/food`, "session-b"), 1);
+
+    const missing = await rawPost(`${url}/demo/reset`, { expectedStatus: 401 });
+    assert.equal(missing.payload.error, "Mcp-Session-Id is required.");
+    assert.equal(missing.response.headers.get("access-control-allow-origin"), null);
+    const missingScenario = await rawPost(`${url}/demo/scenario?all=1`, {
+      expectedStatus: 401,
+      body: { scenario: "serverUnavailable", reset: true },
+    });
+    assert.equal(missingScenario.payload.error, "Mcp-Session-Id is required.");
+    assert.equal(await foodItemCount(`${url}/food`, "session-a"), 1);
+    assert.equal(await foodItemCount(`${url}/food`, "session-b"), 1);
+
+    const invalid = await rawPost(`${url}/demo/reset`, {
+      session: "not a session",
+      expectedStatus: 400,
+    });
+    assert.equal(invalid.payload.error, "Mcp-Session-Id is invalid.");
+    assert.equal(await foodItemCount(`${url}/food`, "session-b"), 1);
+
+    await rawPost(`${url}/demo/reset`, { session: "session-a", body: {} });
+    assert.equal(await foodItemCount(`${url}/food`, "session-a"), 0);
+    assert.equal(await foodItemCount(`${url}/food`, "session-b"), 1);
+
+    await rawPost(`${url}/demo/scenario`, {
+      session: "session-a",
+      body: { scenario: "serverUnavailable", reset: false },
+    });
+    const unavailable = await rawPost(`${url}/food`, {
+      session: "session-a",
+      expectedStatus: 503,
+      body: rpcBody(2, "get_addresses"),
+    });
+    assert.equal(unavailable.payload.error.data.code, "SERVER_UNAVAILABLE");
+    assert.equal(await foodItemCount(`${url}/food`, "session-b"), 1);
+  } finally {
+    await demo.stop();
+  }
+}
+
+function assertCors(response, expectedOrigin) {
+  const allowOrigin = response.headers.get("access-control-allow-origin");
+  assert.notEqual(allowOrigin, "*");
+  assert.equal(allowOrigin, expectedOrigin);
+}
+
+async function testExplicitLoopbackCors() {
+  const denied = [
+    { corsOrigin: "*" },
+    { corsOrigin: "https://evil.example" },
+    { corsOrigin: "http://127.0.0.1:5173/path" },
+  ];
+  for (const options of denied) {
+    const demo = createDemoServer({ port: 0, latencyScale: 0, ...options });
+    const address = await demo.start();
+    const url = `http://${address.address}:${address.port}`;
+    try {
+      const posted = await rawPost(`${url}/demo/reset`, {
+        origin: "https://evil.example",
+        expectedStatus: 401,
+      });
+      assertCors(posted.response, null);
+      const preflight = await fetch(url, {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://evil.example",
+          "Access-Control-Request-Method": "POST",
+        },
+      });
+      assertCors(preflight, null);
+    } finally {
+      await demo.stop();
+    }
+  }
+
+  const previous = process.env.DEMO_CORS_ORIGIN;
+  process.env.DEMO_CORS_ORIGIN = "http://127.0.0.1:5173";
+  const demo = createDemoServer({ port: 0, latencyScale: 0 });
+  try {
+    const address = await demo.start();
+    assert.equal(address.address, "127.0.0.1");
+    const url = `http://${address.address}:${address.port}`;
+    const allowed = await rawPost(`${url}/demo/reset`, {
+      session: "browser-session",
+      origin: "http://127.0.0.1:5173",
+      body: {},
+    });
+    assertCors(allowed.response, "http://127.0.0.1:5173");
+    assert.equal(
+      allowed.response.headers.get("access-control-expose-headers"),
+      "Mcp-Session-Id",
+    );
+
+    const otherLoopback = await rawPost(`${url}/demo/reset`, {
+      session: "browser-session",
+      origin: "http://localhost:5173",
+      body: {},
+    });
+    assertCors(otherLoopback.response, null);
+
+    const publicOrigin = await rawPost(`${url}/demo/reset`, {
+      session: "browser-session",
+      origin: "https://evil.example",
+      body: {},
+    });
+    assertCors(publicOrigin.response, null);
+
+    const preflight = await fetch(`${url}/demo/reset`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://127.0.0.1:5173",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type, mcp-session-id",
+      },
+    });
+    assert.equal(preflight.status, 204);
+    assertCors(preflight, "http://127.0.0.1:5173");
+    assert.equal(
+      preflight.headers.get("access-control-allow-methods"),
+      "POST, OPTIONS",
+    );
+    assert.match(
+      preflight.headers.get("access-control-allow-headers") ?? "",
+      /Mcp-Session-Id/,
+    );
+
+    const blockedPreflight = await fetch(`${url}/demo/reset`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://evil.example",
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+    assertCors(blockedPreflight, null);
+  } finally {
+    if (previous === undefined) delete process.env.DEMO_CORS_ORIGIN;
+    else process.env.DEMO_CORS_ORIGIN = previous;
+    await demo.stop();
+  }
 }
 
 try {
@@ -291,6 +494,17 @@ try {
   );
   assert.equal(recovered.orders[0].orderId, "FOOD-DEMO-2407");
   console.log("✓ ambiguousCheckout scenario recovers through order history");
+
+  assert.equal(loopbackCorsOrigin("*"), null);
+  assert.equal(loopbackCorsOrigin("https://evil.example"), null);
+  assert.equal(loopbackCorsOrigin("http://127.0.0.1.evil.example"), null);
+  assert.equal(loopbackCorsOrigin("http://127.0.0.1:5173/demo"), null);
+  assert.equal(loopbackCorsOrigin("http://127.0.0.1:5173"), "http://127.0.0.1:5173");
+  assert.equal(loopbackCorsOrigin("http://localhost:5173"), "http://localhost:5173");
+  assert.equal(loopbackCorsOrigin("http://[::1]:5173"), "http://[::1]:5173");
+  await testSessionIsolation();
+  await testExplicitLoopbackCors();
+  console.log("✓ control routes stay on one session and CORS is not a wildcard");
 
   console.log(`\nFitOrder demo-server contract passed against ${baseURL}`);
 } finally {
